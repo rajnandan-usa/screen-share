@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screen Share Example</title>
+</head>
+<body>
+<h1>Screen Share Example</h1>
+<div>
+  <button id="startShare">Start Sharing</button>
+  <button id="stopShare" style="display:none;">Stop Sharing</button>
+</div>
+<video id="localVideo" autoplay muted style="width: 50%;"></video>
+<video id="remoteVideo" autoplay style="width: 50%;"></video>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webrtc-adapter/out/adapter.js"></script>
+<script>
+    let localStream;
+let remoteStream;
+
+const startButton = document.getElementById('startShare');
+const stopButton = document.getElementById('stopShare');
+const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
+
+startButton.addEventListener('click', startScreenShare);
+stopButton.addEventListener('click', stopScreenShare);
+
+async function startScreenShare() {
+  try {
+    localStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    localVideo.srcObject = localStream;
+
+    const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    const peerConnection = new RTCPeerConnection(configuration);
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+    peerConnection.onicecandidate = event => {
+      if (event.candidate) {
+        // Send the candidate to the remote peer
+      }
+    };
+
+    peerConnection.ontrack = event => {
+      remoteStream = event.streams[0];
+      remoteVideo.srcObject = remoteStream;
+    };
+
+    // Create and send an offer to start the call
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    // Send the offer to the remote peer
+
+    startButton.style.display = 'none';
+    stopButton.style.display = 'block';
+  } catch (error) {
+    console.error('Error starting screen share:', error);
+  }
+}
+
+function stopScreenShare() {
+  localStream.getTracks().forEach(track => track.stop());
+  localVideo.srcObject = null;
+  remoteVideo.srcObject = null;
+
+  startButton.style.display = 'block';
+  stopButton.style.display = 'none';
+}
+
+</script>
+</body>
+</html>
